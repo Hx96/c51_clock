@@ -1,0 +1,529 @@
+#include<reg51.h>
+unsigned char counter = 0;
+unsigned char buttonTerminal = 0;//～∩?邦????
+unsigned long time = 86398;//米㊣?～那㊣??㏒?米ㄓ??㏒os
+unsigned long alarmTime = 86399;//??芍?那㊣??㏒?米ㄓ??㏒os
+unsigned int clock = 0;//??㊣赤??那㊣那㊣??
+/*******************************/
+unsigned char highSecond = 0 ;
+unsigned char lowSecond = 0;
+unsigned char highMinuate = 0;
+unsigned char lowMinuate = 0;
+unsigned char highHour = 0;
+unsigned char lowHour = 0;
+//那㊣?車㏒??迆?米赤3??DD?車辰??㊣??那y
+/******************************/
+sbit dula=P2^6;		//????D?o?米???∩??¯????
+sbit wela=P2^7;		//????D?o?米???∩??¯????
+/******************************/
+unsigned char highSecondScreen = 0 ;
+unsigned char lowSecondScreen = 0;
+unsigned char highMinuateScreen = 0;
+unsigned char lowMinuateScreen = 0;
+unsigned char highHourScreen = 0;
+unsigned char lowHourScreen = 0;
+//谷豕?????車?辰??DT??那㊣??那㊣?迆?芍??谷???那米米?那㊣??
+/******************************/
+/*******************************/
+unsigned char highSecondClock = 0 ;
+unsigned char lowSecondClock = 0;
+unsigned char highMinuateClock = 0;
+unsigned char lowMinuateClock = 0;
+unsigned char highMacrosecondClock = 0;
+unsigned char lowMacrosecondClock = 0;
+/*******************************/
+unsigned char code number[11] = {0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,0x7f,0x6f,0x40};//那y??1邦????㊣赤
+unsigned char code select[]={0xfe,0xfd,0xfb,0xf7,0xef,0xdf,0xbf,0x7f};//那y??1邦????㊣赤
+unsigned char code keys[16] = {0xee,0xde,0xbe,0x7e,0xed,0xdd,0xbd,0x7d,0xeb,0xdb,0xbb,0x7b,0xe7,0xd7,0xb7,0x77};//???車?邦?足㊣赤
+sbit beep = P2^3;
+//～∩0o?～∩?邦??豕?谷豕??那㊣??谷豕??㏒?1o?o赤2o??a℅車車辰辰????邦㏒?3o??邦谷豕?????車㏒?4o?o赤5o??邦?a那㊣???車??
+unsigned char tag = 0;    //tag = 0那㊣℅車車辰辰????邦o赤那㊣???車???邦?TD∫㏒?tag = 1那㊣米¯??那㊣??㏒?tag = 2那㊣谷豕?????車㏒?tag = 2??㊣赤
+unsigned char blinkSwitch = 0;   //谷芍???a1?㏒?0??1?㏒?1?a?a
+char blinkPos = 7;       //谷芍??米?????
+unsigned char showNum = 0;       //??o赤blinkSwitch那1車?㏒?米㊣blinkSwitch?a1那㊣㏒?∩?㊣那那??a02???那?豕?o????¯㏒??a1那㊣??那?米㊣?～那㊣??㏒?那米??谷芍??D∫1?
+unsigned char alarmSwitch = 0;   //???車?a1?㏒??米?a0㊣赤那????車1?㊣?㏒??米?a1㊣赤那????車∩辰?a
+unsigned char onAlarm = 0;       //???車㊣那??㏒?1㊣赤那????車?y?迆?足㏒?0㊣赤那????足
+unsigned char onClock = 0;       //??㊣赤?a1?㏒?1㊣赤那??a那???那㊣㏒?0㊣赤那??芍那???那㊣
+void init();  //3?那??‘
+void fixTime();   //米¯??那㊣??
+void setAlarm();   //谷豕?????車
+void moveToLeft(); //～?D豕辰a米¯??米???那y?辰℅車辰??‘
+void movToRight();  //～?D豕辰a米¯??米???那y?辰車辰辰??‘
+void timeInc();     //米¯????那㊣??℅??車
+void timeDec();     //米¯????那㊣??℅???
+void confirmTime();      //米¯??那㊣??豕﹞豕?
+void confirmAlarm();     //谷豕?????車豕﹞豕?
+void keyFunc(unsigned char key);//～∩?邦那??t∩|角赤
+void cancelAlarm();      //豕??????車
+unsigned char scan();   //谷“?豕～∩?邦
+void showTime(unsigned char selectNum,unsigned char Time);
+void interface();//那y??1邦??那?℅邦????o‘那y,?迄?Ytag米??米???“??那????車那㊣???1那?米㊣?～那㊣??
+void alarmTimeInc();//???車那㊣??谷豕?“㏒?那㊣???車
+void alarmTimeDec();//???車那㊣??谷豕?“㏒?那㊣????
+void clockBegin() ;  //??㊣赤?a那???那㊣
+void clockEnd();     // ??㊣赤?芍那???那㊣
+void secondClock();  //??㊣赤1|?邦
+void clearClock();   // ??㊣赤??芍?
+void quitClock();    // 赤?3???㊣赤1|?邦
+void delay(unsigned int z)
+{
+	unsigned int x,y;
+	for(x=z;x>0;x--)
+		for(y=110;y>0;y--);
+}
+int main()
+{ 
+	unsigned char key = 0;
+	init();
+	 while(1)
+	 {
+		 keyFunc(scan());
+		 interface();
+	 }
+		 return 0;
+}
+void init()
+{	
+	wela=0;
+	dula=0;
+	time=0;
+	TMOD=0x01;
+	TH0=(65536-46080/5)/256;
+	TL0=(65536-46080/5)%256;
+	EA=1;
+	ET0=1;
+	TCON=0x10;
+}
+void count() interrupt 1
+{
+	 TH0 = (65536 - 46080/5) / 256;
+	 TL0 = (65536 - 46080/5) % 256;
+	 counter++;
+	 buttonTerminal++;
+	 if(time >= 86400)
+	 {
+			time=0;
+	 }
+	 if (time < 0)
+	 {
+		 time = 86399;
+	 }
+	 if(alarmTime >= 86400)
+	 {
+			alarmTime=0;
+	 }
+	 if (alarmTime < 0)
+	 {
+		 alarmTime = 86399;
+	 }
+	 if(onClock == 1)
+	 {
+		 clock ++;
+		 if(clock >= 65535)
+		 {
+			 clock = 0;
+		 }
+		 highMinuateClock = clock/6000/10;
+		 lowMinuateClock = clock/6000-highMinuateClock*10;
+		 highSecondClock = clock%6000/100/10;
+		 lowSecondClock = clock%6000/100-(highSecondClock * 10);
+		 highMacrosecondClock= clock%6000%100/10;
+		 lowMacrosecondClock = clock%6000%100-(highMacrosecondClock*10);
+	 }
+	 if(counter == 100)
+	 {
+	 	 counter = 0;
+		 showNum = !showNum;
+		if(tag != 1)
+		 {
+			 time++;
+		 }
+		 if(time == alarmTime && alarmSwitch == 1)
+		 {
+			 beep = 1;
+			 beep = 0;
+			 onAlarm = 1;
+		 }
+		 highHour=time/3600/10;
+		 lowHour=time/3600-(highHour*10);
+		 highMinuate=time%3600/60/10;
+		 lowMinuate=time%3600/60-(highMinuate*10);
+		 highSecond=time%3600%60/10;
+		 lowSecond=time%3600%60-(highSecond*10);
+		 
+		  highHourScreen=(alarmTime/3600)/10;
+		  lowHourScreen=(alarmTime/3600)-(highHourScreen*10);
+		  highMinuateScreen=((alarmTime%3600)/60)/10;
+		  lowMinuateScreen=((alarmTime%3600)/60) -(highMinuateScreen*10);
+		  highSecondScreen=((alarmTime%3600)%60)/10;
+	      lowSecondScreen=((alarmTime%3600)%60)-(highSecondScreen*10);
+	}
+}
+void fixTime()   //米¯??那㊣??
+{
+	tag = 1;
+	blinkSwitch = 1;  //∩辰?a谷芍???a1?
+}
+void setAlarm()   //谷豕?????車
+{
+		tag = 2;
+	  blinkSwitch = 1;
+}
+void moveToLeft() //～?D豕辰a米¯??米???那y?辰℅車辰??‘
+{
+	blinkPos = blinkPos - 3;
+	if(blinkPos  == -2)
+	{
+		blinkPos = 7;
+	}
+}
+void movToRight()  //～?D豕辰a米¯??米???那y?辰車辰辰??‘
+{
+	blinkPos = blinkPos + 3;
+	if(blinkPos == 10 )
+	{
+		blinkPos = 1;
+	}
+}
+void timeInc()     //米¯????那㊣??℅??車
+{
+		switch (blinkPos)
+		{
+			case 7:
+			{
+				time++;
+				break;
+			}
+			case 4:
+			{
+				time = time + 60;
+				break;
+			}
+			case 1:
+			{
+				time = time + 3600;
+				break;
+			}
+			default:break;
+		}
+}
+void timeDec()     //米¯????那㊣??℅???
+{
+		switch (blinkPos)
+		{
+			case 7:
+			{
+				time--;
+				break;
+			}
+			case 4:
+			{
+				time = time - 60;
+				break;
+			}
+			case 1:
+			{
+				time = time - 3600;
+				break;
+			}
+			default:break;
+		}
+}
+void confirmTime()      //米¯??那㊣??豕﹞豕?
+{
+	blinkSwitch = 0;
+	tag = 0;
+}
+void confirmAlarm()     //谷豕?????車豕﹞豕?
+{
+		alarmSwitch = 1;
+	  blinkSwitch = 0;
+		tag = 0;
+}
+void keyFunc(unsigned char key)//～∩?邦那??t∩|角赤
+                                                                       {
+	switch(key)
+	{
+		case 0:
+		{
+			if(tag == 0)
+			{
+				fixTime();
+			}
+			else if(tag == 1)//?迆?∩～∩??豕?o??邦那㊣米¯??那㊣??㏒??迆～∩???????邦那㊣㏒?～∩??∩??邦?∩?a赤?3?
+			{
+				confirmTime();
+			}
+			else if(tag == 2)
+			{
+				confirmAlarm();
+			}
+			else if(tag == 3 && onClock == 0)
+			{
+				quitClock();
+			}
+			break;
+		}
+		case 1:  //??車D?迆～∩??谷豕??那㊣???邦?辰??谷豕?????車?邦o車㏒?∩??邦車DD∫
+		{
+			if(tag == 1 || tag == 2)
+			{
+				moveToLeft();
+			}
+			break ;
+		}
+		case 2: //??車D?迆～∩??谷豕??那㊣???邦?辰??谷豕?????車?邦o車㏒?∩??邦車DD∫
+		{
+			if(tag == 1 || tag == 2)
+			{
+				movToRight();
+			}
+			break ;
+		}
+		case 3:
+		{
+			if(tag == 0)
+			{
+				setAlarm();
+			}
+			if(tag == 3 && onClock == 0)
+			{
+				clearClock();
+			}
+			break ;
+		}
+		case 4:
+		{
+			if(tag == 1)
+			{
+				timeInc();
+			}
+			if( tag == 2)
+			{
+				 alarmTimeInc();
+			}
+			break ;
+		}
+		case 5:
+		{
+			if(tag == 1)
+			{
+				timeDec();
+			}
+			else if(tag == 2)
+			{
+				 alarmTimeDec();
+			}
+			break ;
+		}
+		case 6:
+		{
+			if(tag == 2)
+			{
+				cancelAlarm();
+			}
+			if(tag == 0)
+			{
+				secondClock();
+			}
+			if(tag == 3)
+			{
+				clockEnd();
+			}
+			break;
+		}
+		case 7:
+		{
+			if(onAlarm == 1)
+			{
+				beep = 0;
+				beep = 1;
+			}
+			if(tag == 3)
+			{
+				clockBegin();
+			}
+			break;
+		}
+		default:break;
+	}
+}
+unsigned char scan()   //谷“?豕～∩?邦
+{
+	
+		unsigned char i = 0;
+		unsigned char cord_l,cord_h,key = 16;
+	  P3 = 0x0f;//0000 1111
+	
+	  if( (P3 & 0x0f) != 0x0f)//?D??那?﹞?車D～∩?邦～∩??
+	  {
+	  	delay(5);//豕赤?t????
+	  	if( (P3 & 0x0f) != 0x0f)//?D??那?﹞?車D～∩?邦～∩??
+	  	{
+			  cord_h = P3 & 0x0f;// ∩⊿∩?DD???米
+			  P3 = cord_l | 0xf0;
+			  cord_l = P3 & 0xf0;// ∩⊿∩?芍D???米
+			  while( (P3 & 0xf0) != 0xf0 );//?谷那??足2a
+			  key = (cord_l + cord_h);//﹞米???邦?米??
+		  }	
+
+	 }
+	 for(i = 0; i < 16;i++)
+	 {
+		 if(key == keys[i])
+		 {
+		 	 return i;
+		 }
+	 }
+	 return 17;
+}
+
+void showTime(unsigned char selectNum,unsigned char Time)
+{
+	if(blinkSwitch == 1 && blinkPos == selectNum)
+	{
+		if(showNum == 0)
+		{		
+			dula = 1;
+			P0 = 0x00;
+			dula = 0;
+			P0 = 0xff;
+			wela = 1;
+			P0 = select[selectNum];
+			wela = 0;
+			delay(1);
+			return ;
+		}
+		else
+		{
+			dula = 1;
+			P0 = number[Time];
+			dula = 0;
+			P0 = 0xff;
+			wela = 1;
+			P0 = select[selectNum];
+			wela = 0;
+			delay(1);
+			return ;
+		}
+	}
+	else
+	{
+			dula = 1;
+			P0 = number[Time];
+			dula = 0;
+			P0 = 0xff;
+			wela = 1;
+			P0 = select[selectNum];
+			wela = 0;
+		delay(1);
+			return ;
+	}
+}
+void interface()
+{
+		if(tag == 0 || tag == 1)
+		{
+			showTime(0,highHour);
+			showTime(1,lowHour);
+			showTime(2,10);
+			showTime(3,highMinuate);
+			showTime(4,lowMinuate);
+			showTime(5,10);
+			showTime(6,highSecond);
+			showTime(7,lowSecond);
+		}
+		else if(tag == 2)
+		{
+			showTime(0,highHourScreen);
+			showTime(1,lowHourScreen);
+			showTime(2,10);
+			showTime(3,highMinuateScreen);
+			showTime(4,lowMinuateScreen);
+			showTime(5,10);
+			showTime(6,highSecondScreen);
+			showTime(7,lowSecondScreen);
+		}
+		else if(tag == 3)
+		{
+			showTime(0,highMinuateClock);
+			showTime(1,lowMinuateClock);
+			showTime(2,10);
+			showTime(3,highSecondClock);
+			showTime(4,lowSecondClock);
+			showTime(5,10);
+			showTime(6,highMacrosecondClock);
+			showTime(7,lowMacrosecondClock);
+		}
+}
+void cancelAlarm()
+{
+	blinkSwitch = 0;
+	alarmSwitch = 0;
+	tag = 0;
+}
+void alarmTimeInc()
+{
+		switch (blinkPos)
+		{
+			case 7:
+			{
+				alarmTime++;
+				break;
+			}
+			case 4:
+			{
+				alarmTime = alarmTime + 60;
+				break;
+			}
+			case 1:
+			{
+				alarmTime = alarmTime + 3600;
+				break;
+			}
+			default:break;
+		}
+}
+void alarmTimeDec()
+{
+		switch (blinkPos)
+		{
+			case 7:
+			{
+				alarmTime--;
+				break;
+			}
+			case 4:
+			{
+				alarmTime = alarmTime - 60;
+				break;
+			}
+			case 1:
+			{
+				alarmTime = alarmTime - 3600;
+				break;
+			}
+			default:break;
+		}
+}
+void clockBegin()
+{
+	onClock = 1;
+}
+void clockEnd()
+{
+	onClock = 0;
+}
+void secondClock()
+{
+	tag = 3;
+	clock = 0;
+}
+void clearClock()
+{
+	clock = 0;
+}
+void quitClock()
+{
+	tag = 0;
+}
